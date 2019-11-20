@@ -6,11 +6,22 @@ import numpy as np
 
 def load_data(data_path, sub_sample=False):
     """
-    Loads data and returns r (user labels), c (item labels) and rating.
-    rating[n] is the rating of user[n] for item[n]
+    Loads data and returns a matrix with 1000 rows corresponding to items and 10 000 colums to users. 
     """
-    raise NotImplementedError
-    return r, c, rating
+    X = np.zeros((1000,10000))
+    ids= np.genfromtxt(data_path, delimiter =",",skip_header=1, dtype=str,usecols=0)
+    users=np.zeros(ids.shape[0])
+    items=np.zeros(ids.shape[0])
+    rates= np.genfromtxt(data_path, delimiter =",",skip_header=1, dtype=int,usecols=1)
+
+    for i in range (ids.shape[0]) :
+        users[i] = (ids[i])[1:ids[i].find("_")]
+        items[i] = (ids[i])[ids[i].find("c")+1:]
+        
+    for i in range(rates.shape[0]) :
+        X[int(items[i])-1,int(users[i])-1]=rates[i]
+        
+    return X
 
 def create_csv_submission(ids, pred, name):
     """
