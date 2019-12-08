@@ -32,12 +32,13 @@ def create_csv_submission(ids, pred, name):
                pred (predicted rating)
                name (string name of .csv output file to be created)
     """
-    with open(name, 'w') as csvfile:
+    with open(name, 'w', newline='') as csvfile:
         fieldnames = ['Id', 'Prediction']
         writer = csv.DictWriter(csvfile, delimiter=",", fieldnames=fieldnames)
         writer.writeheader()
         for r1, r2 in zip(ids, pred):
-            writer.writerow({'Id':int(r1),'Prediction':int(r2)})
+            #writer.writerow({'Id':int(r1),'Prediction':int(r2)})
+            writer.writerow({'Id':r1,'Prediction':str(r2)})
             
 # Helper functions from exercise 10
 
