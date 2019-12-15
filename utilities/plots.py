@@ -52,3 +52,48 @@ def plot_train_test_data(train, test):
     plt.tight_layout()
     plt.savefig("train_test")
     plt.show()
+    
+def plot_simple_heatmap(data, title, xlabel, xticklabels, ylabel, yticklabels):
+    "Plot a simple heatmap with a colorbar."
+    f,a = plt.subplots()
+    a.set_xlabel(xlabel)
+    a.set_xticks(range(len(xticklabels)))
+    a.set_xticklabels(xticklabels)
+    a.set_ylabel(ylabel)
+    a.set_yticks(range(len(yticklabels)))
+    a.set_yticklabels(yticklabels)
+    a.set_title(title)
+    heatmap_corr = a.imshow(data)
+    f.colorbar(heatmap_corr, ax=a)
+    plt.show()
+
+# Example of how to use:
+# data = np.random.rand(5,7)
+# plot_simple_heatmap(data, "title", "xlabel",np.arange(7), "ylabel",np.arange(5))
+
+def plot_simple_heatmaps(data_1, data_2, fig_title, subtitle_1, subtitle_2, xlabel_shared, ylabel_shared):
+    "Plot two heatmaps with colorbars as a single figure."
+    f,a = plt.subplots(2,1)
+    
+    a[0].set_xlabel(xlabel_shared)
+    a[0].set_ylabel(ylabel_shared)
+    a[0].set_title(subtitle_1)
+    heatmap_0 = a[0].imshow(data_1)
+
+    a[1].set_xlabel(xlabel_shared)
+    a[1].set_ylabel(ylabel_shared)
+    a[1].set_title(subtitle_2)
+    heatmap_1 = a[1].imshow(data_2)
+
+    plt.tight_layout()
+    
+    f.colorbar(heatmap_0,ax=a[0])
+    f.colorbar(heatmap_1,ax=a[1])
+    
+    f.suptitle(fig_title)
+    plt.show()
+
+# Example of how to use:
+#data_1 = np.random.rand(200,300)
+#data_2 = np.random.rand(200,300)
+#plot_simple_heatmaps(data_1, data_2, 'fig_title', 'subtitle_1', 'subtitle_2', 'xlabel_shared', 'ylabel_shared')
