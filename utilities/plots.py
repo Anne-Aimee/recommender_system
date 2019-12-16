@@ -97,3 +97,49 @@ def plot_simple_heatmaps(data_1, data_2, fig_title, subtitle_1, subtitle_2, xlab
 #data_1 = np.random.rand(200,300)
 #data_2 = np.random.rand(200,300)
 #plot_simple_heatmaps(data_1, data_2, 'fig_title', 'subtitle_1', 'subtitle_2', 'xlabel_shared', 'ylabel_shared')
+
+
+def plot_gradient_descent_tuning_parameters_MF_SGD(num_features, lambda_user, lambda_item, gamma, gamma_dec_step_size, 
+                                                   min_rmse_te):
+    """ Plots the result of """
+    f,a = plt.subplots(1,2)
+    
+    # plot first axis with  lambda_user, lambda_item, gamma, gamma_dec_step_size
+    a[0].set_xlabel('iteration')
+    a[0].set_ylabel(r'$\lambda_{user}, \lambda_{item}, \gamma, \delta_\gamma$')
+    a[0].set_title('Evolution of\nParameters')
+    line, = a[0].plot(min_rmse_te, label=r'$RMSE$')
+    line, = a[0].plot(lambda_user, label=r'$\lambda_{user}$')
+    line, = a[0].plot(lambda_item, label=r'$\lambda_{item}$')
+    line, = a[0].plot(gamma, label=r'$\gamma$')
+    line, = a[0].plot(gamma_dec_step_size, label=r'$\delta_\gamma$')
+    # plot num_features out of visible range for the legend
+    bottom, top = a[0].get_ylim()
+    line, = a[0].plot(num_features,color='yellow',label=r'$K$')
+    a[0].set_ylim(bottom, top)
+    #a[0].legend(ncol=2)
+    
+    # plot num_features (different order of magnitude) on the secundary axis
+    a0_sec = a[0].twinx()
+    a0_sec.set_ylabel(r'$K$')
+    a0_sec.plot(num_features,color='yellow')
+
+    a0_sec.set_ylim(bottom,max(num_features)*1.1)
+
+    a[1].set_xlabel('iteration')
+    a[1].set_ylabel('Relative Change')
+    a[1].set_title('Deviation from\ninitial condition')
+    a[1].plot(np.array(min_rmse_te)/min_rmse_te[0])
+    a[1].plot(np.array(lambda_user)/lambda_user[0])
+    a[1].plot(np.array(lambda_item)/lambda_item[0])
+    a[1].plot(np.array(gamma)/gamma[0])
+    a[1].plot(np.array(gamma_dec_step_size)/gamma_dec_step_size[0])
+    a[1].plot(np.array(num_features)/num_features[0],color='yellow')
+    
+    f.subplots_adjust(bottom=0.3, wspace=0.33)
+
+    f.legend( loc='lower center', ncol=7)
+    f.suptitle('Parameter Tuning GD')
+    plt.tight_layout(rect=(0,0.1,1,0.95))
+
+    

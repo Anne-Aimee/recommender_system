@@ -3,27 +3,8 @@
 import csv
 import numpy as np
 import scipy.sparse as sp
+from math import sqrt
 
-"""
-def load_data(data_path, sub_sample=False):
-
-    #Loads data and returns a matrix with 1000 rows corresponding to items and 10 000 colums to users. 
-
-    X = np.zeros((1000,10000))
-    ids= np.genfromtxt(data_path, delimiter =",",skip_header=1, dtype=str,usecols=0)
-    users=np.zeros(ids.shape[0])
-    items=np.zeros(ids.shape[0])
-    rates= np.genfromtxt(data_path, delimiter =",",skip_header=1, dtype=int,usecols=1)
-
-    for i in range (ids.shape[0]) :
-        users[i] = (ids[i])[1:ids[i].find("_")]
-        items[i] = (ids[i])[ids[i].find("c")+1:]
-        
-    for i in range(rates.shape[0]) :
-        X[int(items[i])-1,int(users[i])-1]=rates[i]
-        
-    return X
-"""
 
 def create_csv_submission(ids, pred, name):
     """
@@ -40,7 +21,6 @@ def create_csv_submission(ids, pred, name):
             #writer.writerow({'Id':int(r1),'Prediction':int(r2)})
             writer.writerow({'Id':r1,'Prediction':str(r2)})
             
-# Helper functions from exercise 10
 
 def read_txt(path):
     """read text file from path."""
@@ -86,30 +66,157 @@ def calculate_mse(real_label, prediction):
     t = real_label - prediction
     return 1.0 * t.dot(t.T)
 
-"""
-# Functions from Exercise 10 that were not used 
+def split_data(ratings, num_items_per_user, num_users_per_item,
+               min_num_ratings, p_test=0.1, seed = 988):
+    """split the ratings to training data and test data.
+    Args:
+        min_num_ratings: 
+            all users and items we keep must have at least min_num_ratings per user and per item. 
+    """
+    # set seed
+    np.random.seed(seed)
+    
+    # select user and item based on the condition.
+    valid_users = np.where(num_items_per_user >= min_num_ratings)[0]
+    valid_items = np.where(num_users_per_item >= min_num_ratings)[0]
+    valid_ratings = ratings[valid_items, :][: , valid_users]  
+    
+    # split the data and return train and test data.
+    # we only consider users and movies that have more than 10 ratings
 
-#from itertools import groupby
-def group_by(data, index):
-    #group list of list by a specific index.
-    sorted_data = sorted(data, key=lambda x: x[index])
-    groupby_data = groupby(sorted_data, lambda x: x[index])
-    return groupby_data
+    ind_test = np.random.choice(valid_ratings.nnz, int(valid_ratings.nnz*p_test), replace=False)
+    ind_train = np.delete(np.arange(valid_ratings.nnz),ind_test)
+    
+    valid_ratings_coo = valid_ratings.tocoo()
+    data = valid_ratings_coo.data
+    row = valid_ratings_coo.row
+    col = valid_ratings_coo.col
+    
+    test = sp.coo_matrix((data[ind_test], (row[ind_test], col[ind_test])), shape=valid_ratings.get_shape())
+    train = sp.coo_matrix((data[ind_train], (row[ind_train], col[ind_train])), shape=valid_ratings.get_shape()) 
+    
+    print("Total number of nonzero elements in origial data:{v}".format(v=ratings.nnz))
+    print("Total number of nonzero elements in train data:{v}".format(v=train.nnz))
+    print("Total number of nonzero elements in test data:{v}".format(v=test.nnz))
+    return valid_ratings, train, test
+
+def compute_error(data, user_features, item_features, nz):
+    """compute the loss (MSE) of the prediction of nonzero elements."""
+
+    # calculate rmse (we only consider nonzero entries.)
+    approx_data_matrix = np.dot(item_features.T,user_features)
+    return sqrt(calculate_mse(data,approx_data_matrix[nz])/(len(data)))
+
+def compute_prediction_baseline_average_item_user_offset(ratings, shape_valid_ratings, item_features_baseline_corr,
+                                                         user_features_baseline_corr, num_items_per_user,
+                                                         num_users_per_item, min_num_ratings, 
+                                                         better_average_movie_ratings, better_average_user_offsets):
+
+    # Prediction of the valid part
+    rows, cols = np.indices(shape_valid_ratings)
+    baseline = better_average_movie_ratings[rows] + better_average_user_offsets[cols]
+    matrix_factorisation = np.dot(item_features_baseline_corr.T,user_features_baseline_corr)
+    
+    prediction_valid =  baseline + matrix_factorisation
+    
+    
+    # clip values in an invalid range
+    prediction_valid[prediction_valid > 5] = 5;
+    prediction_valid[prediction_valid < 1] = 1;
+    
+    # Fill the Matrix's invalid entries
+    prediction = np.zeros(ratings.shape)
+    
+    valid_users = np.where(num_items_per_user >= min_num_ratings)[0]
+    valid_items = np.where(num_users_per_item >= min_num_ratings)[0]
+    
+    invalid_users = np.where(num_items_per_user < min_num_ratings)[0]
+    invalid_items = np.where(num_users_per_item < min_num_ratings)[0]
+                        
+    #prediction[valid_items, :][: , valid_users] = prediction_valid # Fancy notation dosn't work as it returns a copy
+    prediction[np.ix_(valid_items,valid_users)] = prediction_valid # This line achieves what the previous can't do
+    
+    sum_ratings_user = np.squeeze(np.asarray(ratings.sum(0)))    # sum of the nonzero elements, for each row
+    count_ratings_user = np.diff(ratings.tocsc().indptr)         # count of the nonzero elements, for each row
+    average_ratings_user = sum_ratings_user/count_ratings_user
+    
+    for invalid_item in invalid_items:
+        prediction[invalid_item, :] = average_ratings_user
+    
+    sum_ratings_movie = np.squeeze(np.asarray(ratings.sum(1)))    # sum of the nonzero elements, for each row
+    count_ratings_movie = np.diff(ratings.tocsr().indptr)         # count of the nonzero elements, for each row
+    average_movie_ratings = sum_ratings_movie/count_ratings_movie
+    
+    for invalid_user in invalid_users:
+        prediction[: , invalid_user] = average_movie_ratings
+    
+    global_mean = np.mean(ratings.tocoo().data)
+    
+    for invalid_item in invalid_items:
+        for invalid_item in invalid_items:
+            prediction[invalid_items , invalid_users] = global_mean
+            
+    #prediction[ratings.nonzero()] = ratings.tocoo().data
+    prediction = np.rint(prediction)
+    
+    return prediction
+ 
+def compute_prediction_baseline_linear(ratings, shape_valid_ratings, item_features_baseline_corr,
+                                                         user_features_baseline_corr, num_items_per_user,
+                                                         num_users_per_item, min_num_ratings, 
+                                                         w_item, w_user, w_0):
+
+   
 
 
-def build_index_groups(train):
-    #build groups for nnz rows and cols.
-    nz_row, nz_col = train.nonzero()
-    nz_train = list(zip(nz_row, nz_col))
+    # Prediction of the valid part
+    rows, cols = np.indices(shape_valid_ratings)
+    baseline = w_item[rows] + w_user[cols] + w_0
+    matrix_factorisation = np.dot(item_features_baseline_corr.T,user_features_baseline_corr)
+    
+    prediction_valid =  baseline + matrix_factorisation
+    
+    
+    # clip values in an invalid range
+    prediction_valid[prediction_valid > 5] = 5;
+    prediction_valid[prediction_valid < 1] = 1;
+    
+    # Fill the Matrix's invalid entries
+    prediction = np.zeros(ratings.shape)
+    
+    valid_users = np.where(num_items_per_user >= min_num_ratings)[0]
+    valid_items = np.where(num_users_per_item >= min_num_ratings)[0]
+    
+    invalid_users = np.where(num_items_per_user < min_num_ratings)[0]
+    invalid_items = np.where(num_users_per_item < min_num_ratings)[0]
+                        
+    #prediction[valid_items, :][: , valid_users] = prediction_valid # Fancy notation dosn't work as it returns a copy
+    prediction[np.ix_(valid_items,valid_users)] = prediction_valid # This line achieves what the previous can't do
+    
+    sum_ratings_user = np.squeeze(np.asarray(ratings.sum(0)))    # sum of the nonzero elements, for each row
+    count_ratings_user = np.diff(ratings.tocsc().indptr)         # count of the nonzero elements, for each row
+    average_ratings_user = sum_ratings_user/count_ratings_user
+    
+    for invalid_item in invalid_items:
+        prediction[invalid_item, :] = average_ratings_user
+    
+    sum_ratings_movie = np.squeeze(np.asarray(ratings.sum(1)))    # sum of the nonzero elements, for each row
+    count_ratings_movie = np.diff(ratings.tocsr().indptr)         # count of the nonzero elements, for each row
+    average_movie_ratings = sum_ratings_movie/count_ratings_movie
+    
+    for invalid_user in invalid_users:
+        prediction[: , invalid_user] = average_movie_ratings
+    
+    global_mean = np.mean(ratings.tocoo().data)
+    
+    for invalid_item in invalid_items:
+        for invalid_item in invalid_items:
+            prediction[invalid_items , invalid_users] = global_mean
+            
+    #prediction[ratings.nonzero()] = ratings.tocoo().data
+    prediction = np.rint(prediction)
+    
+    return prediction
+ 
 
-    grouped_nz_train_byrow = group_by(nz_train, index=0)
-    nz_row_colindices = [(g, np.array([v[1] for v in value]))
-                         for g, value in grouped_nz_train_byrow]
-
-    grouped_nz_train_bycol = group_by(nz_train, index=1)
-    nz_col_rowindices = [(g, np.array([v[0] for v in value]))
-                         for g, value in grouped_nz_train_bycol]
-    return nz_train, nz_row_colindices, nz_col_rowindices
-
-"""
 
