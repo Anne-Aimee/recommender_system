@@ -256,7 +256,7 @@ def ALS(train, test, num_features, lambda_user, lambda_item, max_iter, seed,base
         item_features = update_item_feature(train, user_features, lambda_item, nnz_users_per_item, nz_item_userindices)
         
         rmse_tr.append(compute_error(train.data, user_features, item_features, train.nonzero()))
-        rmse_te.append(compute_clipped_error(test.data, user_features, item_features, test.nonzero()))
+        rmse_te.append(compute_error(test.data, user_features, item_features, test.nonzero()))
         print("iter: {}, RMSE on training set: {}, RMSE on testing set: {}.".format(it, rmse_tr[-1],rmse_te[-1]))
         
         if np.isclose(rmse_tr[-1],rmse_tr[-2],stop_criterion) or rmse_tr[-1] > rmse_tr[0]:
