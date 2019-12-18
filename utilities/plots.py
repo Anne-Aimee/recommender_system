@@ -29,7 +29,7 @@ def plot_raw_data(ratings):
     ax2.grid()
 
     plt.tight_layout()
-    plt.savefig("stat_ratings")
+    plt.savefig("../plots/stat_ratings")
     plt.show()
     # plt.close()
     return num_items_per_user, num_users_per_item
@@ -50,7 +50,6 @@ def plot_train_test_data(train, test):
     ax2.set_title("Test")
     fig.suptitle("Sparsity of Data")
     plt.tight_layout()
-    plt.savefig("train_test")
     plt.show()
     
 def plot_simple_heatmap(data, title, xlabel, xticklabels, ylabel, yticklabels):

@@ -87,7 +87,7 @@ def matrix_factorization_SGD(train, test):
     print("RMSE on test data: {}.".format(rmse))
 
 def matrix_factorization_SGD_regularized(train, test, num_features, lambda_user, lambda_item, gamma, 
-                                         gamma_dec_step_size, num_epochs, seed, stop_criterion,baseline=False):
+                                         gamma_dec_step_size, num_epochs, seed, stop_criterion, baseline=False):
     """matrix factorization by SGD."""
     
     # set seed
@@ -153,7 +153,7 @@ def update_user_feature(train, item_features, lambda_user, nnz_items_per_user, n
         
         item_features_n = np.zeros(item_features.shape)
         item_features_n[:,nz_user_itemindices[n]] = item_features[:,nz_user_itemindices[n]]
-        user_features[:,n] = np.linalg.solve(np.dot(item_features_n,item_features.T)+lambda_user*nnz_items_per_user[n]*np.identity(user_features.shape[0]),np.dot(item_features,np.squeeze(np.asarray(train.getcol(n).todense()))))
+        user_features[:,n] = np.linalg.solve(np.dot(item_features_n,item_features.T) + lambda_user * nnz_items_per_user[n] * np.identity(user_features.shape[0]), np.dot(item_features,np.squeeze(np.asarray(train.getcol(n).todense()))))
     
     return user_features
 
@@ -168,7 +168,7 @@ def update_item_feature(train, user_features, lambda_item, nnz_users_per_item, n
         
         user_features_d = np.zeros(user_features.shape)
         user_features_d[:,nz_item_userindices[d]] = user_features[:,nz_item_userindices[d]]
-        item_features[:,d] = np.linalg.solve(np.dot(user_features_d,user_features.T)+lambda_item*nnz_users_per_item[d]*np.identity(user_features.shape[0]),np.dot(user_features,np.squeeze(np.asarray(train.getrow(d).todense()))))
+        item_features[:,d] = np.linalg.solve(np.dot(user_features_d,user_features.T) + lambda_item * nnz_users_per_item[d] * np.identity(user_features.shape[0]), np.dot(user_features,np.squeeze(np.asarray(train.getrow(d).todense()))))
     
     return item_features
 
@@ -224,7 +224,7 @@ def matrix_factorization_SGD_regularized_predict(train, test, num_features, lamb
     
     return min_rmse_te, best_user_features, best_item_features
 
-def ALS(train, test, num_features, lambda_user, lambda_item, max_iter, seed,baseline=False):
+def ALS(train, test, num_features, lambda_user, lambda_item, max_iter, seed, stop_criterion, baseline=False):
     """Alternating Least Squares (ALS) algorithm."""
     # define parameters
     
