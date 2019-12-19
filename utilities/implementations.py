@@ -267,7 +267,7 @@ def ALS(train, test, num_features, lambda_user, lambda_item, max_iter, seed, sto
     
     return min_rmse_te
 
-def ALS_pred(train, test, num_features, lambda_user, lambda_item, max_iter, seed):
+def ALS_pred(train, test, num_features, lambda_user, lambda_item, max_iter, seed, stop_criterion):
     """Alternating Least Squares (ALS) algorithm."""
     # define parameters
     
@@ -308,7 +308,7 @@ def ALS_pred(train, test, num_features, lambda_user, lambda_item, max_iter, seed
             best_user_features = np.copy(user_features)
             best_item_features = np.copy(item_features)
         
-        if np.isclose(rmse_tr[-1],rmse_tr[-2],atol=stop_criterion,rtol=stop_criterion) or rmse_tr[-1] > rmse_tr[0]:
+        if np.isclose(rmse_tr[-1],rmse_tr[-2], atol=stop_criterion, rtol=stop_criterion) or rmse_tr[-1] > rmse_tr[0]:
             break
         
     min_rmse_te = min(rmse_te)
@@ -432,7 +432,7 @@ def compute_error_sigmoid(data, user_features, item_features, nz,shift):
     approx_data_matrix = sigmoid_customized(np.dot(item_features.T,user_features),shift)
     return sqrt(calculate_mse(data,approx_data_matrix[nz])/(len(data)))
 
-def matrix_factorization_SGD_regularized_sigmoid_predict(train, test, num_features, lambda_user, lambda_item, gamma, gamma_dec_step_size, num_epochs, seed, stop_criterion,shift):
+def matrix_factorization_SGD_regularized_sigmoid_predict(train, test, num_features, lambda_user, lambda_item, gamma, gamma_dec_step_size, num_epochs, seed, stop_criterion, shift):
     """matrix factorization by SGD with sigmoid on output."""
     
     # set seed
@@ -488,7 +488,7 @@ def matrix_factorization_SGD_regularized_sigmoid_predict(train, test, num_featur
     
     return min_rmse_te, best_user_features, best_item_features
 
-def matrix_factorization_SGD_regularized_sigmoid(train, test, num_features, lambda_user, lambda_item, gamma, gamma_dec_step_size, num_epochs, seed, stop_criterion,shift):
+def matrix_factorization_SGD_regularized_sigmoid(train, test, num_features, lambda_user, lambda_item, gamma, gamma_dec_step_size, num_epochs, seed, stop_criterion, shift):
     # matrix factorization by SGD with sigmoid on output.
     
     # set seed
